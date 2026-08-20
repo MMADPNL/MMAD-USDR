@@ -18,7 +18,7 @@ from telegram.ext import (
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
+ADMIN_ID = 8552447077
 
 CHANNEL_USERNAME = "@MMAD_KING1W"
 CHANNEL_URL = "https://t.me/MMAD_KING1W"
