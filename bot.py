@@ -7,7 +7,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🤖 ربات با موفقیت روشن شد!")
 
 
-async def main():
+def main():
     token = os.getenv("BOT_TOKEN")
 
     if not token:
@@ -19,9 +19,8 @@ async def main():
     app.add_handler(CommandHandler("start", start))
 
     print("✅ ربات در حال اجراست...")
-    await app.run_polling()
+    app.run_polling()
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
