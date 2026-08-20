@@ -14,7 +14,15 @@ def main():
         print("❌ BOT_TOKEN تنظیم نشده است.")
         return
 
-    app = Application.builder().token(token).build()
+    app = (
+    Application.builder()
+    .token(token)
+    .connect_timeout(60)
+    .read_timeout(60)
+    .write_timeout(60)
+    .pool_timeout(60)
+    .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
 
