@@ -239,4 +239,577 @@ async def wallet(update, context):
 
     text = (
         "💰 کیف پول شما\n\n"
-        f"🐶 DOGS:
+        f"🐶 DOGS: {user['DOGS']:,}\n"
+        f"💎 TON: {user['TON']:,}\n"
+        f"💵 USDT: {user['USDT']:,}\n"
+        f"🪙 NOT: {user['NOT']:,}\n"
+        f"💧 WAT: {user['WAT']:,}\n"
+        f"🪙 لایت‌کوین: {user['LTC']:,}\n"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📥 واریز",
+                callback_data="deposit"
+            ),
+            InlineKeyboardButton(
+                "📤 برداشت",
+                callback_data="withdraw"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "🔙 بازگشت",
+                callback_data="home"
+            )
+        ],
+    ]
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+# =========================
+# CURRENCIES
+# =========================
+
+async def currencies(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    text = (
+        "💱 ارزهای لیست شده در ربات:\n\n"
+        "🐶 DOGS\n"
+        "💎 TON\n"
+        "💵 USDT\n"
+        "🪙 NOT\n"
+        "💧 WAT\n"
+        "🪙 لایت‌کوین"
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🔙 بازگشت",
+                callback_data="home"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+# =========================
+# DEPOSIT
+# =========================
+
+async def deposit(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    keyboard = []
+
+    for code, name in CURRENCIES.items():
+
+        keyboard.append([
+            InlineKeyboardButton(
+                name,
+                callback_data=f"deposit_{code}"
+            )
+        ])
+
+    keyboard.append([
+        InlineKeyboardButton(
+            "🔙 بازگشت",
+            callback_data="wallet"
+        )
+    ])
+
+    await query.edit_message_text(
+        "📥 ارز موردنظر برای واریز را انتخاب کنید:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+# =========================
+# DEPOSIT SELECTED
+# =========================
+
+async def deposit_selected(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    currency = query.data.replace(
+        "deposit_",
+        ""
+    )
+
+    context.user_data["deposit_currency"] = currency
+    context.user_data["waiting_deposit_photo"] = True
+
+    text = (
+        f"📥 واریز {CURRENCIES[currency]}\n\n"
+        "💳 به این کیف پول واریز کنید:\n\n"
+        f"`{DEPOSIT_WALLET}`\n\n"
+        "📸 بعد از واریز، اسکرین‌شات تراکنش را ارسال کنید.\n\n"
+        "⚠️ پس از بررسی، موجودی شما توسط مدیریت اضافه می‌شود."
+    )
+
+    await query.edit_message_text(
+        text,
+        parse_mode="Markdown"
+    )
+
+
+# =========================
+# DEPOSIT PHOTO
+# =========================
+
+async def receive_photo(update, context):
+
+    if not context.user_data.get(
+        "waiting_deposit_photo"
+    ):
+        return
+
+    user = update.effective_user
+
+    currency = context.user_data.get(
+        "deposit_currency"
+    )
+
+    caption = (
+        "📥 درخواست واریز جدید\n\n"
+        f"👤 نام: {user.full_name}\n"
+        f"🆔 ID: {user.id}\n"
+        f"💱 ارز: {CURRENCIES.get(currency, currency)}"
+    )
+
+    # ارسال به ادمین
+    if ADMIN_ID != 0:
+
+        await context.bot.send_photo(
+            chat_id=ADMIN_ID,
+            photo=update.message.photo[-1].file_id,
+            caption=caption
+        )
+
+    context.user_data["waiting_deposit_photo"] = False
+    context.user_data["deposit_currency"] = None
+
+    await update.message.reply_text(
+        "✅ رسید واریز شما دریافت شد.\n\n"
+        "⏳ پس از بررسی مدیریت، موجودی شما اضافه می‌شود."
+    )
+
+
+# =========================
+# WITHDRAW
+# =========================
+
+async def withdraw(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    keyboard = []
+
+    for code, name in CURRENCIES.items():
+
+        keyboard.append([
+            InlineKeyboardButton(
+                name,
+                callback_data=f"withdraw_{code}"
+            )
+        ])
+
+    keyboard.append([
+        InlineKeyboardButton(
+            "🔙 بازگشت",
+            callback_data="wallet"
+        )
+    ])
+
+    await query.edit_message_text(
+        "📤 ارز موردنظر برای برداشت را انتخاب کنید:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+# =========================
+# WITHDRAW SELECTED
+# =========================
+
+async def withdraw_selected(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    currency = query.data.replace(
+        "withdraw_",
+        ""
+    )
+
+    user_id = update.effective_user.id
+
+    data = create_user(user_id)
+
+    balance = data["users"][str(user_id)][currency]
+
+    context.user_data["withdraw_currency"] = currency
+    context.user_data["waiting_withdraw_amount"] = True
+
+    await query.edit_message_text(
+        f"📤 برداشت {CURRENCIES[currency]}\n\n"
+        f"💰 موجودی شما: {balance:,}\n\n"
+        "لطفاً مقدار برداشت را ارسال کنید:"
+    )
+
+
+# =========================
+# TEXT
+# =========================
+
+async def receive_text(update, context):
+
+    text = update.message.text.strip()
+
+    user_id = update.effective_user.id
+
+    # =====================
+    # WITHDRAW AMOUNT
+    # =====================
+
+    if context.user_data.get(
+        "waiting_withdraw_amount"
+    ):
+
+        currency = context.user_data.get(
+            "withdraw_currency"
+        )
+
+        try:
+            amount = float(text)
+
+        except ValueError:
+
+            await update.message.reply_text(
+                "❌ مقدار وارد شده صحیح نیست."
+            )
+
+            return
+
+        data = create_user(user_id)
+
+        balance = data["users"][str(user_id)][currency]
+
+        if amount <= 0:
+
+            await update.message.reply_text(
+                "❌ مقدار باید بیشتر از صفر باشد."
+            )
+
+            return
+
+        if amount > balance:
+
+            await update.message.reply_text(
+                "❌ موجودی کافی نیست."
+            )
+
+            return
+
+        context.user_data[
+            "withdraw_amount"
+        ] = amount
+
+        context.user_data[
+            "waiting_withdraw_amount"
+        ] = False
+
+        context.user_data[
+            "waiting_withdraw_address"
+        ] = True
+
+        await update.message.reply_text(
+            "💳 آدرس کیف پول مقصد را ارسال کنید:"
+        )
+
+        return
+
+    # =====================
+    # WITHDRAW ADDRESS
+    # =====================
+
+    if context.user_data.get(
+        "waiting_withdraw_address"
+    ):
+
+        address = text
+
+        currency = context.user_data.get(
+            "withdraw_currency"
+        )
+
+        amount = context.user_data.get(
+            "withdraw_amount"
+        )
+
+        data = create_user(user_id)
+
+        data["users"][str(user_id)][currency] -= amount
+
+        save_data(data)
+
+        context.user_data[
+            "waiting_withdraw_address"
+        ] = False
+
+        withdraw_text = (
+            "📤 درخواست برداشت جدید\n\n"
+            f"👤 نام: {update.effective_user.full_name}\n"
+            f"🆔 ID: {user_id}\n"
+            f"💱 ارز: {CURRENCIES[currency]}\n"
+            f"💰 مقدار: {amount}\n"
+            f"💳 آدرس کیف پول:\n{address}"
+        )
+
+        # ارسال به ادمین
+        if ADMIN_ID != 0:
+
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
+                text=withdraw_text
+            )
+
+        # ارسال به کانال
+        try:
+
+            await context.bot.send_message(
+                chat_id=CHANNEL_USERNAME,
+                text=withdraw_text
+            )
+
+        except Exception as e:
+
+            print(
+                "Channel send error:",
+                e
+            )
+
+        await update.message.reply_text(
+            "✅ درخواست برداشت شما ثبت شد.\n\n"
+            "⏳ پس از بررسی مدیریت انجام می‌شود."
+        )
+
+        return
+
+
+# =========================
+# REFERRAL
+# =========================
+
+async def referral(update, context):
+
+    query = update.callback_query
+    await query.answer()
+
+    user_id = update.effective_user.id
+
+    bot = await context.bot.get_me()
+
+    link = (
+        f"https://t.me/"
+        f"{bot.username}"
+        f"?start={user_id}"
+    )
+
+    text = (
+        "👥 زیرمجموعه‌گیری\n\n"
+        "🔗 لینک اختصاصی شما:\n\n"
+        f"{link}\n\n"
+        "🎁 به ازای هر زیرمجموعه موفق:\n"
+        f"💰 {REFERRAL_REWARD} DOGS\n\n"
+        "پاداش به صورت خودکار به کیف پول شما اضافه می‌شود."
+    )
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🔙 بازگشت",
+                callback_data="home"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+# =========================
+# CALLBACKS
+# =========================
+
+async def callbacks(update, context):
+
+    query = update.callback_query
+
+    data = query.data
+
+    if data == "check_join":
+
+        if await is_member(
+            update.effective_user.id,
+            context
+        ):
+
+            await query.answer(
+                "✅ عضویت تأیید شد!"
+            )
+
+            await query.edit_message_text(
+                "👑 خوش آمدید!\n\n"
+                "یکی از گزینه‌های زیر را انتخاب کنید:",
+                reply_markup=main_keyboard()
+            )
+
+        else:
+
+            await query.answer(
+                "❌ هنوز عضو کانال نشده‌اید.",
+                show_alert=True
+            )
+
+    elif data == "home":
+
+        await query.answer()
+
+        await query.edit_message_text(
+            "👑 منوی اصلی\n\n"
+            "یکی از گزینه‌ها را انتخاب کنید:",
+            reply_markup=main_keyboard()
+        )
+
+    elif data == "wallet":
+
+        await wallet(update, context)
+
+    elif data == "currencies":
+
+        await currencies(update, context)
+
+    elif data == "referral":
+
+        await referral(update, context)
+
+    elif data == "deposit":
+
+        await deposit(update, context)
+
+    elif data.startswith("deposit_"):
+
+        await deposit_selected(
+            update,
+            context
+        )
+
+    elif data == "withdraw":
+
+        await withdraw(update, context)
+
+    elif data.startswith("withdraw_"):
+
+        await withdraw_selected(
+            update,
+            context
+        )
+
+
+# =========================
+# ERROR
+# =========================
+
+async def error_handler(update, context):
+
+    print(
+        "ERROR:",
+        context.error
+    )
+
+
+# =========================
+# MAIN
+# =========================
+
+def main():
+
+    if not BOT_TOKEN:
+
+        print(
+            "❌ BOT_TOKEN تنظیم نشده است."
+        )
+
+        return
+
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .connect_timeout(60)
+        .read_timeout(60)
+        .write_timeout(60)
+        .pool_timeout(60)
+        .build()
+    )
+
+    app.add_handler(
+        CommandHandler(
+            "start",
+            start
+        )
+    )
+
+    app.add_handler(
+        CallbackQueryHandler(
+            callbacks
+        )
+    )
+
+    app.add_handler(
+        MessageHandler(
+            filters.PHOTO,
+            receive_photo
+        )
+    )
+
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & ~filters.COMMAND,
+            receive_text
+        )
+    )
+
+    app.add_error_handler(
+        error_handler
+    )
+
+    print(
+        "✅ ربات در حال اجراست..."
+    )
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
