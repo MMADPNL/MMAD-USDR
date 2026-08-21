@@ -21,6 +21,10 @@ from telegram.ext import (
     filters,
 )
 
+# =========================================================
+# CONFIG
+# =========================================================
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 ADMIN_ID = 8552447077
@@ -45,11 +49,6 @@ CURRENCIES = {
     "WAT": "WAT",
     "LTC": "لایت‌کوین",
 }
-
-
-# =========================================================
-# LOCK
-# =========================================================
 
 DATA_LOCK = asyncio.Lock()
 
@@ -98,7 +97,10 @@ def load_data():
 
 
 def save_data(data):
-    directory = os.path.dirname(os.path.abspath(DATA_FILE))
+    directory = os.path.dirname(
+        os.path.abspath(DATA_FILE)
+    )
+
     temp_path = None
 
     try:
@@ -108,7 +110,12 @@ def save_data(data):
             dir=directory
         )
 
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
+        with os.fdopen(
+            fd,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
             json.dump(
                 data,
                 f,
@@ -119,12 +126,17 @@ def save_data(data):
             f.flush()
             os.fsync(f.fileno())
 
-        os.replace(temp_path, DATA_FILE)
+        os.replace(
+            temp_path,
+            DATA_FILE
+        )
 
     except Exception as e:
+
         print("SAVE ERROR:", e)
 
         if temp_path:
+
             try:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
@@ -133,7 +145,7 @@ def save_data(data):
 
 
 # =========================================================
-# USER DATABASE
+# USER
 # =========================================================
 
 def default_user():
@@ -154,23 +166,33 @@ def default_user():
 def create_user(user_id, telegram_user=None):
 
     data = load_data()
+
     uid = str(user_id)
+
     changed = False
 
     if uid not in data["users"]:
+
         data["users"][uid] = default_user()
+
         changed = True
 
     user = data["users"][uid]
 
     if not isinstance(user, dict):
+
         user = default_user()
+
         data["users"][uid] = user
+
         changed = True
 
     for currency in CURRENCIES:
+
         if currency not in user:
+
             user[currency] = 0
+
             changed = True
 
     for key in [
@@ -179,8 +201,11 @@ def create_user(user_id, telegram_user=None):
         "first_name",
         "last_name"
     ]:
+
         if key not in user:
+
             user[key] = None
+
             changed = True
 
     if telegram_user is not None:
@@ -190,21 +215,27 @@ def create_user(user_id, telegram_user=None):
         last_name = telegram_user.last_name
 
         if user.get("username") != username:
+
             user["username"] = username
             changed = True
 
         if user.get("first_name") != first_name:
+
             user["first_name"] = first_name
             changed = True
 
         if user.get("last_name") != last_name:
+
             user["last_name"] = last_name
             changed = True
 
     # مالک
     if user_id == ADMIN_ID:
+
         if user.get("DOGS") is None:
+
             user["DOGS"] = OWNER_START_DOGS
+
             changed = True
 
     if changed:
@@ -214,10 +245,35 @@ def create_user(user_id, telegram_user=None):
 
 
 def is_owner(user_id):
+
     try:
         return int(user_id) == ADMIN_ID
+
     except Exception:
         return False
+
+
+# =========================================================
+# CURRENCY NORMALIZER
+# =========================================================
+
+def normalize_currency(value):
+
+    if not value:
+        return None
+
+    value = str(value).strip().upper()
+
+    aliases = {
+        "DOGS": "DOGS",
+        "TON": "TON",
+        "USDT": "USDT",
+        "NOT": "NOT",
+        "WAT": "WAT",
+        "LTC": "LTC",
+    }
+
+    return aliases.get(value)
 
 
 # =========================================================
@@ -227,6 +283,7 @@ def is_owner(user_id):
 def format_amount(amount):
 
     try:
+
         value = float(amount)
 
         if value.is_integer():
@@ -239,11 +296,12 @@ def format_amount(amount):
         )
 
     except Exception:
+
         return str(amount)
 
 
 # =========================================================
-# FIND USER BY USERNAME
+# FIND USER
 # =========================================================
 
 def find_user_by_username(username):
@@ -273,10 +331,14 @@ def find_user_by_username(username):
         if not saved_username:
             continue
 
-        if str(saved_username).lower() == username:
+        if (
+            str(saved_username).lower()
+            == username
+        ):
 
             try:
                 return int(uid)
+
             except Exception:
                 return None
 
@@ -294,7 +356,10 @@ async def myid(update, context):
 
     user = update.effective_user
 
-    create_user(user.id, user)
+    create_user(
+        user.id,
+        user
+    )
 
     status = (
         "✅ شما مالک هستید."
@@ -306,7 +371,8 @@ async def myid(update, context):
     username_text = (
         f"@{user.username}"
         if user.username
-        else "ندارد"
+        else
+        "ندارد"
     )
 
     await update.message.reply_text(
@@ -327,10 +393,14 @@ async def ownerbalance(update, context):
     if update.effective_chat.type != "private":
         return
 
-    if not is_owner(update.effective_user.id):
+    if not is_owner(
+        update.effective_user.id
+    ):
+
         await update.message.reply_text(
             "❌ فقط مالک می‌تواند این دستور را استفاده کند."
         )
+
         return
 
     data = create_user(
@@ -360,10 +430,14 @@ async def setowner(update, context):
     if update.effective_chat.type != "private":
         return
 
-    if not is_owner(update.effective_user.id):
+    if not is_owner(
+        update.effective_user.id
+    ):
+
         await update.message.reply_text(
             "❌ فقط مالک می‌تواند این دستور را استفاده کند."
         )
+
         return
 
     data = create_user(
@@ -371,7 +445,9 @@ async def setowner(update, context):
         update.effective_user
     )
 
-    data["users"][str(ADMIN_ID)]["DOGS"] = OWNER_START_DOGS
+    data["users"][
+        str(ADMIN_ID)
+    ]["DOGS"] = OWNER_START_DOGS
 
     save_data(data)
 
@@ -403,6 +479,7 @@ async def is_member(user_id, context):
     except Exception as e:
 
         print("MEMBER ERROR:", e)
+
         return False
 
 
@@ -434,14 +511,18 @@ async def force_join(update, context):
 
         await update.callback_query.edit_message_text(
             text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup(
+                keyboard
+            )
         )
 
     elif update.message:
 
         await update.message.reply_text(
             text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup(
+                keyboard
+            )
         )
 
 
@@ -485,33 +566,54 @@ async def start(update, context):
     user = update.effective_user
     user_id = user.id
 
-    if not await is_member(user_id, context):
+    if not await is_member(
+        user_id,
+        context
+    ):
 
-        await force_join(update, context)
+        await force_join(
+            update,
+            context
+        )
+
         return
 
-    data = create_user(user_id, user)
+    data = create_user(
+        user_id,
+        user
+    )
 
     # REFERRAL
     if context.args:
 
         try:
 
-            referrer_id = int(context.args[0])
+            referrer_id = int(
+                context.args[0]
+            )
 
             if referrer_id != user_id:
 
                 uid = str(user_id)
 
-                if data["users"][uid]["referrer"] is None:
+                if (
+                    data["users"][uid]
+                    ["referrer"] is None
+                ):
 
-                    ref_uid = str(referrer_id)
+                    ref_uid = str(
+                        referrer_id
+                    )
 
                     if ref_uid in data["users"]:
 
-                        data["users"][uid]["referrer"] = referrer_id
+                        data["users"][uid][
+                            "referrer"
+                        ] = referrer_id
 
-                        data["users"][ref_uid]["DOGS"] += REFERRAL_REWARD
+                        data["users"][ref_uid][
+                            "DOGS"
+                        ] += REFERRAL_REWARD
 
                         save_data(data)
 
@@ -528,7 +630,11 @@ async def start(update, context):
                             pass
 
         except Exception as e:
-            print("REFERRAL ERROR:", e)
+
+            print(
+                "REFERRAL ERROR:",
+                e
+            )
 
     await update.message.reply_text(
         "👑 به ربات خوش آمدید!\n\n"
@@ -554,16 +660,24 @@ async def wallet(update, context):
         user
     )
 
-    user_data = data["users"][str(user.id)]
+    user_data = data[
+        "users"
+    ][str(user.id)]
 
     text = (
         "💰 کیف پول شما\n\n"
-        f"🐶 DOGS: {format_amount(user_data['DOGS'])}\n"
-        f"💎 TON: {format_amount(user_data['TON'])}\n"
-        f"💵 USDT: {format_amount(user_data['USDT'])}\n"
-        f"🪙 NOT: {format_amount(user_data['NOT'])}\n"
-        f"💧 WAT: {format_amount(user_data['WAT'])}\n"
-        f"🪙 لایت‌کوین: {format_amount(user_data['LTC'])}"
+        f"🐶 DOGS: "
+        f"{format_amount(user_data['DOGS'])}\n"
+        f"💎 TON: "
+        f"{format_amount(user_data['TON'])}\n"
+        f"💵 USDT: "
+        f"{format_amount(user_data['USDT'])}\n"
+        f"🪙 NOT: "
+        f"{format_amount(user_data['NOT'])}\n"
+        f"💧 WAT: "
+        f"{format_amount(user_data['WAT'])}\n"
+        f"🪙 لایت‌کوین: "
+        f"{format_amount(user_data['LTC'])}"
     )
 
     keyboard = [
@@ -587,7 +701,9 @@ async def wallet(update, context):
 
     await query.edit_message_text(
         text,
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(
+            keyboard
+        )
     )
 
 
@@ -654,7 +770,9 @@ async def deposit(update, context):
 
     await query.edit_message_text(
         "📥 ارز موردنظر برای واریز را انتخاب کنید:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(
+            keyboard
+        )
     )
 
 
@@ -672,18 +790,28 @@ async def deposit_selected(update, context):
         "deposit_",
         "",
         1
-    ).upper()
+    )
 
-    if currency not in CURRENCIES:
+    currency = normalize_currency(
+        currency
+    )
+
+    if not currency:
         return
 
     context.user_data.clear()
 
-    context.user_data["deposit_currency"] = currency
-    context.user_data["waiting_deposit_amount"] = True
+    context.user_data[
+        "deposit_currency"
+    ] = currency
+
+    context.user_data[
+        "waiting_deposit_amount"
+    ] = True
 
     await query.edit_message_text(
-        f"📥 واریز {CURRENCIES[currency]}\n\n"
+        f"📥 واریز "
+        f"{CURRENCIES[currency]}\n\n"
         "💰 مقدار واریز را ارسال کنید.\n\n"
         "مثال:\n"
         "100\n"
@@ -695,7 +823,10 @@ async def deposit_selected(update, context):
 # DEPOSIT AMOUNT
 # =========================================================
 
-async def handle_deposit_amount(update, context):
+async def handle_deposit_amount(
+    update,
+    context
+):
 
     text = update.message.text.strip()
 
@@ -707,6 +838,7 @@ async def handle_deposit_amount(update, context):
         return False
 
     try:
+
         amount = float(
             text.replace(",", "")
         )
@@ -728,13 +860,23 @@ async def handle_deposit_amount(update, context):
 
         return True
 
-    context.user_data["deposit_amount"] = amount
-    context.user_data["waiting_deposit_amount"] = False
-    context.user_data["waiting_deposit_photo"] = True
+    context.user_data[
+        "deposit_amount"
+    ] = amount
+
+    context.user_data[
+        "waiting_deposit_amount"
+    ] = False
+
+    context.user_data[
+        "waiting_deposit_photo"
+    ] = True
 
     await update.message.reply_text(
-        f"📥 ارز: {CURRENCIES[currency]}\n"
-        f"💰 مقدار: {format_amount(amount)}\n\n"
+        f"📥 ارز: "
+        f"{CURRENCIES[currency]}\n"
+        f"💰 مقدار: "
+        f"{format_amount(amount)}\n\n"
         "💳 آدرس کیف پول:\n\n"
         f"`{DEPOSIT_WALLET}`\n\n"
         "📸 حالا اسکرین‌شات تراکنش را ارسال کنید.",
@@ -760,7 +902,10 @@ async def receive_photo(update, context):
 
     user = update.effective_user
 
-    create_user(user.id, user)
+    create_user(
+        user.id,
+        user
+    )
 
     currency = context.user_data.get(
         "deposit_currency"
@@ -816,13 +961,17 @@ async def receive_photo(update, context):
         [
             InlineKeyboardButton(
                 "✅ تأیید واریز",
-                callback_data=f"approve_deposit_{deposit_id}"
+                callback_data=(
+                    f"approve_deposit_{deposit_id}"
+                )
             )
         ],
         [
             InlineKeyboardButton(
                 "❌ رد واریز",
-                callback_data=f"reject_deposit_{deposit_id}"
+                callback_data=(
+                    f"reject_deposit_{deposit_id}"
+                )
             )
         ]
     ])
@@ -838,7 +987,10 @@ async def receive_photo(update, context):
 
     except Exception as e:
 
-        print("DEPOSIT ADMIN ERROR:", e)
+        print(
+            "DEPOSIT ADMIN ERROR:",
+            e
+        )
 
         data = load_data()
 
@@ -870,7 +1022,9 @@ async def deposit_action(update, context):
 
     query = update.callback_query
 
-    if not is_owner(update.effective_user.id):
+    if not is_owner(
+        update.effective_user.id
+    ):
 
         await query.answer(
             "❌ فقط مالک می‌تواند این کار را انجام دهد.",
@@ -879,7 +1033,9 @@ async def deposit_action(update, context):
 
         return
 
-    if query.data.startswith("approve_deposit_"):
+    if query.data.startswith(
+        "approve_deposit_"
+    ):
 
         deposit_id = query.data.replace(
             "approve_deposit_",
@@ -889,7 +1045,9 @@ async def deposit_action(update, context):
 
         action = "approve"
 
-    elif query.data.startswith("reject_deposit_"):
+    elif query.data.startswith(
+        "reject_deposit_"
+    ):
 
         deposit_id = query.data.replace(
             "reject_deposit_",
@@ -913,7 +1071,9 @@ async def deposit_action(update, context):
 
         return
 
-    deposit_data = data["deposits"][deposit_id]
+    deposit_data = data[
+        "deposits"
+    ][deposit_id]
 
     if deposit_data["status"] != "pending":
 
@@ -925,16 +1085,27 @@ async def deposit_action(update, context):
         return
 
     user_id = deposit_data["user_id"]
-    currency = deposit_data["currency"]
-    amount = float(deposit_data["amount"])
+    currency = normalize_currency(
+        deposit_data["currency"]
+    )
+
+    amount = float(
+        deposit_data["amount"]
+    )
 
     if action == "approve":
 
         data = create_user(user_id)
+
         uid = str(user_id)
 
-        data["users"][uid][currency] += amount
-        data["deposits"][deposit_id]["status"] = "approved"
+        data["users"][uid][
+            currency
+        ] += amount
+
+        data["deposits"][
+            deposit_id
+        ]["status"] = "approved"
 
         save_data(data)
 
@@ -943,8 +1114,10 @@ async def deposit_action(update, context):
             await context.bot.send_message(
                 user_id,
                 "✅ واریز شما تأیید شد.\n\n"
-                f"💱 ارز: {CURRENCIES[currency]}\n"
-                f"💰 مقدار: {format_amount(amount)}"
+                f"💱 ارز: "
+                f"{CURRENCIES[currency]}\n"
+                f"💰 مقدار: "
+                f"{format_amount(amount)}"
             )
 
         except Exception:
@@ -960,11 +1133,15 @@ async def deposit_action(update, context):
             await query.edit_message_caption(
                 caption=(
                     "✅ واریز تأیید شد.\n\n"
-                    f"🆔 درخواست: {deposit_id}\n"
-                    f"👤 نام: {deposit_data['name']}\n"
+                    f"🆔 درخواست: "
+                    f"{deposit_id}\n"
+                    f"👤 نام: "
+                    f"{deposit_data['name']}\n"
                     f"🆔 ID: {user_id}\n"
-                    f"💱 ارز: {CURRENCIES[currency]}\n"
-                    f"💰 مقدار: {format_amount(amount)}"
+                    f"💱 ارز: "
+                    f"{CURRENCIES[currency]}\n"
+                    f"💰 مقدار: "
+                    f"{format_amount(amount)}"
                 )
             )
 
@@ -973,7 +1150,9 @@ async def deposit_action(update, context):
 
     else:
 
-        data["deposits"][deposit_id]["status"] = "rejected"
+        data["deposits"][
+            deposit_id
+        ]["status"] = "rejected"
 
         save_data(data)
 
@@ -982,8 +1161,10 @@ async def deposit_action(update, context):
             await context.bot.send_message(
                 user_id,
                 "❌ واریز شما رد شد.\n\n"
-                f"💱 ارز: {CURRENCIES[currency]}\n"
-                f"💰 مقدار: {format_amount(amount)}"
+                f"💱 ارز: "
+                f"{CURRENCIES[currency]}\n"
+                f"💰 مقدار: "
+                f"{format_amount(amount)}"
             )
 
         except Exception:
@@ -999,11 +1180,15 @@ async def deposit_action(update, context):
             await query.edit_message_caption(
                 caption=(
                     "❌ واریز رد شد.\n\n"
-                    f"🆔 درخواست: {deposit_id}\n"
-                    f"👤 نام: {deposit_data['name']}\n"
+                    f"🆔 درخواست: "
+                    f"{deposit_id}\n"
+                    f"👤 نام: "
+                    f"{deposit_data['name']}\n"
                     f"🆔 ID: {user_id}\n"
-                    f"💱 ارز: {CURRENCIES[currency]}\n"
-                    f"💰 مقدار: {format_amount(amount)}"
+                    f"💱 ارز: "
+                    f"{CURRENCIES[currency]}\n"
+                    f"💰 مقدار: "
+                    f"{format_amount(amount)}"
                 )
             )
 
@@ -1041,7 +1226,9 @@ async def withdraw(update, context):
 
     await query.edit_message_text(
         "📤 ارز موردنظر برای برداشت را انتخاب کنید:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup(
+            keyboard
+        )
     )
 
 
@@ -1059,25 +1246,41 @@ async def withdraw_selected(update, context):
         "withdraw_",
         "",
         1
-    ).upper()
+    )
 
-    if currency not in CURRENCIES:
+    currency = normalize_currency(
+        currency
+    )
+
+    if not currency:
         return
 
     user = update.effective_user
 
-    data = create_user(user.id, user)
+    data = create_user(
+        user.id,
+        user
+    )
 
-    balance = data["users"][str(user.id)][currency]
+    balance = data[
+        "users"
+    ][str(user.id)][currency]
 
     context.user_data.clear()
 
-    context.user_data["withdraw_currency"] = currency
-    context.user_data["waiting_withdraw_amount"] = True
+    context.user_data[
+        "withdraw_currency"
+    ] = currency
+
+    context.user_data[
+        "waiting_withdraw_amount"
+    ] = True
 
     await query.edit_message_text(
-        f"📤 برداشت {CURRENCIES[currency]}\n\n"
-        f"💰 موجودی شما: {format_amount(balance)}\n\n"
+        f"📤 برداشت "
+        f"{CURRENCIES[currency]}\n\n"
+        f"💰 موجودی شما: "
+        f"{format_amount(balance)}\n\n"
         "مقدار برداشت را ارسال کنید:"
     )
 
@@ -1086,7 +1289,10 @@ async def withdraw_selected(update, context):
 # WITHDRAW TEXT
 # =========================================================
 
-async def handle_withdraw_text(update, context):
+async def handle_withdraw_text(
+    update,
+    context
+):
 
     text = update.message.text.strip()
 
@@ -1129,22 +1335,35 @@ async def handle_withdraw_text(update, context):
             update.effective_user
         )
 
-        uid = str(update.effective_user.id)
+        uid = str(
+            update.effective_user.id
+        )
 
-        balance = data["users"][uid][currency]
+        balance = data[
+            "users"
+        ][uid][currency]
 
         if amount > balance:
 
             await update.message.reply_text(
                 "❌ موجودی کافی نیست.\n\n"
-                f"💰 موجودی: {format_amount(balance)}"
+                f"💰 موجودی: "
+                f"{format_amount(balance)}"
             )
 
             return True
 
-        context.user_data["withdraw_amount"] = amount
-        context.user_data["waiting_withdraw_amount"] = False
-        context.user_data["waiting_withdraw_address"] = True
+        context.user_data[
+            "withdraw_amount"
+        ] = amount
+
+        context.user_data[
+            "waiting_withdraw_amount"
+        ] = False
+
+        context.user_data[
+            "waiting_withdraw_address"
+        ] = True
 
         await update.message.reply_text(
             "💳 آدرس کیف پول مقصد را ارسال کنید:"
@@ -1176,9 +1395,11 @@ async def handle_withdraw_text(update, context):
             return True
 
         data = load_data()
+
         uid = str(user_id)
 
         if uid not in data["users"]:
+
             data["users"][uid] = default_user()
 
         balance = float(
@@ -1200,10 +1421,16 @@ async def handle_withdraw_text(update, context):
 
         withdraw_id = uuid.uuid4().hex[:10]
 
-        data["withdrawals"][withdraw_id] = {
+        data["withdrawals"][
+            withdraw_id
+        ] = {
             "user_id": user_id,
-            "username": update.effective_user.username,
-            "name": update.effective_user.full_name,
+            "username": (
+                update.effective_user.username
+            ),
+            "name": (
+                update.effective_user.full_name
+            ),
             "currency": currency,
             "amount": amount,
             "address": address,
@@ -1216,18 +1443,26 @@ async def handle_withdraw_text(update, context):
             [
                 InlineKeyboardButton(
                     "✅ تأیید برداشت",
-                    callback_data=f"approve_withdraw_{withdraw_id}"
+                    callback_data=(
+                        f"approve_withdraw_"
+                        f"{withdraw_id}"
+                    )
                 )
             ],
             [
                 InlineKeyboardButton(
                     "❌ رد برداشت",
-                    callback_data=f"reject_withdraw_{withdraw_id}"
+                    callback_data=(
+                        f"reject_withdraw_"
+                        f"{withdraw_id}"
+                    )
                 )
             ]
         ])
 
-        username = update.effective_user.username
+        username = (
+            update.effective_user.username
+        )
 
         username_text = (
             f"@{username}"
@@ -1238,11 +1473,15 @@ async def handle_withdraw_text(update, context):
         withdraw_text = (
             "📤 درخواست برداشت جدید\n\n"
             f"🆔 درخواست: {withdraw_id}\n"
-            f"👤 نام: {update.effective_user.full_name}\n"
-            f"🔗 Username: {username_text}\n"
+            f"👤 نام: "
+            f"{update.effective_user.full_name}\n"
+            f"🔗 Username: "
+            f"{username_text}\n"
             f"🆔 ID: {user_id}\n"
-            f"💱 ارز: {CURRENCIES[currency]}\n"
-            f"💰 مقدار: {format_amount(amount)}\n"
+            f"💱 ارز: "
+            f"{CURRENCIES[currency]}\n"
+            f"💰 مقدار: "
+            f"{format_amount(amount)}\n"
             f"💳 آدرس:\n{address}"
         )
 
@@ -1256,12 +1495,20 @@ async def handle_withdraw_text(update, context):
 
         except Exception as e:
 
-            print("ADMIN WITHDRAW ERROR:", e)
+            print(
+                "ADMIN WITHDRAW ERROR:",
+                e
+            )
 
             data = load_data()
 
-            if withdraw_id in data["withdrawals"]:
-                del data["withdrawals"][withdraw_id]
+            if withdraw_id in data[
+                "withdrawals"
+            ]:
+
+                del data[
+                    "withdrawals"
+                ][withdraw_id]
 
             save_data(data)
 
@@ -1291,7 +1538,9 @@ async def withdraw_action(update, context):
 
     query = update.callback_query
 
-    if not is_owner(update.effective_user.id):
+    if not is_owner(
+        update.effective_user.id
+    ):
 
         await query.answer(
             "❌ فقط مالک می‌تواند این کار را انجام دهد.",
@@ -1300,7 +1549,9 @@ async def withdraw_action(update, context):
 
         return
 
-    if query.data.startswith("approve_withdraw_"):
+    if query.data.startswith(
+        "approve_withdraw_"
+    ):
 
         withdraw_id = query.data.replace(
             "approve_withdraw_",
@@ -1310,7 +1561,9 @@ async def withdraw_action(update, context):
 
         action = "approve"
 
-    elif query.data.startswith("reject_withdraw_"):
+    elif query.data.startswith(
+        "reject_withdraw_"
+    ):
 
         withdraw_id = query.data.replace(
             "reject_withdraw_",
@@ -1325,7 +1578,9 @@ async def withdraw_action(update, context):
 
     data = load_data()
 
-    if withdraw_id not in data["withdrawals"]:
+    if withdraw_id not in data[
+        "withdrawals"
+    ]:
 
         await query.answer(
             "❌ درخواست پیدا نشد.",
@@ -1334,7 +1589,9 @@ async def withdraw_action(update, context):
 
         return
 
-    request = data["withdrawals"][withdraw_id]
+    request = data[
+        "withdrawals"
+    ][withdraw_id]
 
     if request["status"] != "pending":
 
@@ -1346,13 +1603,21 @@ async def withdraw_action(update, context):
         return
 
     user_id = request["user_id"]
-    currency = request["currency"]
-    amount = float(request["amount"])
+
+    currency = normalize_currency(
+        request["currency"]
+    )
+
+    amount = float(
+        request["amount"]
+    )
+
     uid = str(user_id)
 
     if action == "approve":
 
         if uid not in data["users"]:
+
             data["users"][uid] = default_user()
 
         current_balance = float(
@@ -1364,7 +1629,9 @@ async def withdraw_action(update, context):
 
         if amount > current_balance:
 
-            data["withdrawals"][withdraw_id]["status"] = "failed"
+            data[
+                "withdrawals"
+            ][withdraw_id]["status"] = "failed"
 
             save_data(data)
 
@@ -1375,9 +1642,13 @@ async def withdraw_action(update, context):
 
             return
 
-        data["users"][uid][currency] -= amount
+        data["users"][uid][
+            currency
+        ] -= amount
 
-        data["withdrawals"][withdraw_id]["status"] = "approved"
+        data[
+            "withdrawals"
+        ][withdraw_id]["status"] = "approved"
 
         save_data(data)
 
@@ -1386,9 +1657,12 @@ async def withdraw_action(update, context):
             await context.bot.send_message(
                 user_id,
                 "✅ برداشت شما تأیید شد.\n\n"
-                f"💱 ارز: {CURRENCIES[currency]}\n"
-                f"💰 مقدار: {format_amount(amount)}\n"
-                f"💳 آدرس:\n{request['address']}"
+                f"💱 ارز: "
+                f"{CURRENCIES[currency]}\n"
+                f"💰 مقدار: "
+                f"{format_amount(amount)}\n"
+                f"💳 آدرس:\n"
+                f"{request['address']}"
             )
 
         except Exception:
@@ -1403,12 +1677,17 @@ async def withdraw_action(update, context):
 
             await query.edit_message_text(
                 "✅ برداشت تأیید شد.\n\n"
-                f"🆔 درخواست: {withdraw_id}\n"
-                f"👤 نام: {request['name']}\n"
+                f"🆔 درخواست: "
+                f"{withdraw_id}\n"
+                f"👤 نام: "
+                f"{request['name']}\n"
                 f"🆔 ID: {user_id}\n"
-                f"💱 ارز: {CURRENCIES[currency]}\n"
-                f"💰 مقدار: {format_amount(amount)}\n"
-                f"💳 آدرس:\n{request['address']}"
+                f"💱 ارز: "
+                f"{CURRENCIES[currency]}\n"
+                f"💰 مقدار: "
+                f"{format_amount(amount)}\n"
+                f"💳 آدرس:\n"
+                f"{request['address']}"
             )
 
         except Exception:
@@ -1416,7 +1695,9 @@ async def withdraw_action(update, context):
 
     else:
 
-        data["withdrawals"][withdraw_id]["status"] = "rejected"
+        data[
+            "withdrawals"
+        ][withdraw_id]["status"] = "rejected"
 
         save_data(data)
 
@@ -1425,8 +1706,10 @@ async def withdraw_action(update, context):
             await context.bot.send_message(
                 user_id,
                 "❌ برداشت شما رد شد.\n\n"
-                f"💱 ارز: {CURRENCIES[currency]}\n"
-                f"💰 مقدار: {format_amount(amount)}"
+                f"💱 ارز: "
+                f"{CURRENCIES[currency]}\n"
+                f"💰 مقدار: "
+                f"{format_amount(amount)}"
             )
 
         except Exception:
@@ -1441,11 +1724,15 @@ async def withdraw_action(update, context):
 
             await query.edit_message_text(
                 "❌ برداشت رد شد.\n\n"
-                f"🆔 درخواست: {withdraw_id}\n"
-                f"👤 نام: {request['name']}\n"
+                f"🆔 درخواست: "
+                f"{withdraw_id}\n"
+                f"👤 نام: "
+                f"{request['name']}\n"
                 f"🆔 ID: {user_id}\n"
-                f"💱 ارز: {CURRENCIES[currency]}\n"
-                f"💰 مقدار: {format_amount(amount)}"
+                f"💱 ارز: "
+                f"{CURRENCIES[currency]}\n"
+                f"💰 مقدار: "
+                f"{format_amount(amount)}"
             )
 
         except Exception:
@@ -1453,17 +1740,23 @@ async def withdraw_action(update, context):
 
 
 # =========================================================
-# TRANSFER BY USERNAME
+# TRANSFER
+# =========================================================
 #
-# قبول می‌کند:
+# مثال‌های قابل قبول:
 #
-# wallet 200 DOGS @MMAD_KING
-# wallet 200 DOGS MMAD_KING
-# wallet 200 DOGS @MMAD123
-# wallet 200 DOGS MMAD123
-# wallet 200 DOGS user123
+# wallet 200 dogs @username
+# wallet 200 DOGS @username
+# wallet 200 Dogs @username
 #
-# Username تلگرام می‌تواند حروف، عدد و _ داشته باشد.
+# wallet 1.5 ton @username
+# wallet 1.5 TON @username
+# wallet 1.5 ToN @username
+#
+# wallet 10 usdt @username
+# wallet 10 USDT @username
+# wallet 10 UsDt @username
+#
 # =========================================================
 
 async def wallet_transfer(update, context):
@@ -1481,8 +1774,8 @@ async def wallet_transfer(update, context):
             "wallet مقدار ارز آیدی\n\n"
             "مثال:\n"
             "wallet 200 DOGS @MMAD_KING\n"
-            "wallet 500 TON @username123\n"
-            "wallet 10 NOT MMAD123"
+            "wallet 500 ton @username123\n"
+            "wallet 10 UsDt MMAD123"
         )
 
         return
@@ -1496,7 +1789,10 @@ async def wallet_transfer(update, context):
     # AMOUNT
     # =====================================================
 
-    amount_text = parts[1].replace(",", "")
+    amount_text = parts[1].replace(
+        ",",
+        ""
+    )
 
     try:
 
@@ -1524,9 +1820,23 @@ async def wallet_transfer(update, context):
     # CURRENCY
     # =====================================================
 
-    currency = parts[2].upper()
+    # مهم:
+    # قبل از بررسی، به uppercase تبدیل می‌شود.
+    #
+    # بنابراین:
+    # dogs
+    # DOGS
+    # Dogs
+    # DoGs
+    #
+    # همه = DOGS
+    # =====================================================
 
-    if currency not in CURRENCIES:
+    currency = normalize_currency(
+        parts[2]
+    )
+
+    if currency is None:
 
         await message.reply_text(
             "❌ ارز نامعتبر است.\n\n"
@@ -1547,23 +1857,21 @@ async def wallet_transfer(update, context):
 
     target_username = parts[3].strip()
 
-    # @ اختیاری است
     if target_username.startswith("@"):
-        target_username_clean = target_username[1:]
+
+        target_username_clean = (
+            target_username[1:]
+        )
+
     else:
-        target_username_clean = target_username
 
-    target_username_clean = target_username_clean.strip()
+        target_username_clean = (
+            target_username
+        )
 
-    # =====================================================
-    # مهم:
-    # حروف انگلیسی + عدد + _
-    #
-    # مثال:
-    # MMAD123
-    # user123
-    # MMAD_KING1
-    # =====================================================
+    target_username_clean = (
+        target_username_clean.strip()
+    )
 
     if not re.fullmatch(
         r"[A-Za-z0-9_]{3,32}",
@@ -1572,7 +1880,8 @@ async def wallet_transfer(update, context):
 
         await message.reply_text(
             "❌ آیدی کاربر صحیح نیست.\n\n"
-            "آیدی باید شامل حروف انگلیسی، عدد یا _ باشد.\n\n"
+            "آیدی باید شامل حروف انگلیسی، "
+            "عدد یا _ باشد.\n\n"
             "مثال:\n"
             "@MMAD123\n"
             "@MMAD_KING1\n"
@@ -1619,7 +1928,8 @@ async def wallet_transfer(update, context):
 
         await message.reply_text(
             "❌ این کاربر در ربات پیدا نشد.\n\n"
-            f"👤 آیدی مقصد: @{target_username_clean}\n\n"
+            f"👤 آیدی مقصد: "
+            f"@{target_username_clean}\n\n"
             "⚠️ کاربر مقصد باید حداقل یک‌بار "
             "ربات را /start کرده باشد و Username "
             "تلگرام داشته باشد."
@@ -1643,7 +1953,9 @@ async def wallet_transfer(update, context):
     # CREATE TARGET
     # =====================================================
 
-    create_user(target_user_id)
+    create_user(
+        target_user_id
+    )
 
     data = load_data()
 
@@ -1666,9 +1978,11 @@ async def wallet_transfer(update, context):
         await message.reply_text(
             "❌ موجودی کافی نیست.\n\n"
             f"💰 موجودی شما: "
-            f"{format_amount(sender_balance)} {currency}\n"
+            f"{format_amount(sender_balance)} "
+            f"{currency}\n"
             f"💸 مبلغ انتقال: "
-            f"{format_amount(amount)} {currency}"
+            f"{format_amount(amount)} "
+            f"{currency}"
         )
 
         return
@@ -1677,9 +1991,13 @@ async def wallet_transfer(update, context):
     # TRANSFER
     # =====================================================
 
-    data["users"][sender_uid][currency] -= amount
+    data["users"][sender_uid][
+        currency
+    ] -= amount
 
-    data["users"][target_uid][currency] += amount
+    data["users"][target_uid][
+        currency
+    ] += amount
 
     save_data(data)
 
@@ -1687,7 +2005,9 @@ async def wallet_transfer(update, context):
         "users"
     ][sender_uid][currency]
 
-    target_data = data["users"][target_uid]
+    target_data = data[
+        "users"
+    ][target_uid]
 
     receiver_username = (
         target_data.get("username")
@@ -1695,20 +2015,23 @@ async def wallet_transfer(update, context):
     )
 
     # =====================================================
-    # SENDER MESSAGE
+    # SENDER
     # =====================================================
 
     await message.reply_text(
         "✅ انتقال با موفقیت انجام شد.\n\n"
-        f"👤 گیرنده: @{receiver_username}\n"
+        f"👤 گیرنده: "
+        f"@{receiver_username}\n"
         f"💰 مقدار: "
-        f"{format_amount(amount)} {currency}\n\n"
+        f"{format_amount(amount)} "
+        f"{currency}\n\n"
         f"💳 موجودی شما:\n"
-        f"{format_amount(new_balance)} {currency}"
+        f"{format_amount(new_balance)} "
+        f"{currency}"
     )
 
     # =====================================================
-    # RECEIVER MESSAGE
+    # RECEIVER
     # =====================================================
 
     try:
@@ -1716,9 +2039,11 @@ async def wallet_transfer(update, context):
         await context.bot.send_message(
             target_user_id,
             "💰 یک انتقال برای شما انجام شد.\n\n"
-            f"👤 فرستنده: {sender.full_name}\n"
+            f"👤 فرستنده: "
+            f"{sender.full_name}\n"
             f"💰 مقدار: "
-            f"{format_amount(amount)} {currency}"
+            f"{format_amount(amount)} "
+            f"{currency}"
         )
 
     except Exception as e:
@@ -1798,7 +2123,10 @@ async def check_join(update, context):
 
     user_id = update.effective_user.id
 
-    if await is_member(user_id, context):
+    if await is_member(
+        user_id,
+        context
+    ):
 
         await query.answer(
             "✅ عضویت شما تأیید شد.",
@@ -1856,7 +2184,7 @@ async def receive_text(update, context):
         return
 
     # =====================================================
-    # DEPOSIT AMOUNT
+    # DEPOSIT
     # =====================================================
 
     if context.user_data.get(
@@ -1893,18 +2221,20 @@ async def receive_text(update, context):
 
 
 # =========================================================
-# ERROR HANDLER
+# ERROR
 # =========================================================
 
 async def error_handler(update, context):
 
     print("BOT ERROR:")
 
-    traceback.print_exception(
-        type(context.error),
-        context.error,
-        context.error.__traceback__
-    )
+    if context.error:
+
+        traceback.print_exception(
+            type(context.error),
+            context.error,
+            context.error.__traceback__
+        )
 
 
 # =========================================================
@@ -1914,7 +2244,11 @@ async def error_handler(update, context):
 def main():
 
     if not BOT_TOKEN:
-        print("❌ BOT_TOKEN پیدا نشد.")
+
+        print(
+            "❌ BOT_TOKEN پیدا نشد."
+        )
+
         return
 
     application = (
@@ -1923,25 +2257,41 @@ def main():
         .build()
     )
 
+    # =====================================================
     # COMMANDS
+    # =====================================================
 
     application.add_handler(
-        CommandHandler("start", start)
+        CommandHandler(
+            "start",
+            start
+        )
     )
 
     application.add_handler(
-        CommandHandler("myid", myid)
+        CommandHandler(
+            "myid",
+            myid
+        )
     )
 
     application.add_handler(
-        CommandHandler("ownerbalance", ownerbalance)
+        CommandHandler(
+            "ownerbalance",
+            ownerbalance
+        )
     )
 
     application.add_handler(
-        CommandHandler("setowner", setowner)
+        CommandHandler(
+            "setowner",
+            setowner
+        )
     )
 
+    # =====================================================
     # CALLBACKS
+    # =====================================================
 
     application.add_handler(
         CallbackQueryHandler(
@@ -2020,30 +2370,49 @@ def main():
         )
     )
 
+    # =====================================================
     # PHOTO
+    # =====================================================
 
     application.add_handler(
         MessageHandler(
-            filters.PHOTO & filters.ChatType.PRIVATE,
+            filters.PHOTO
+            & filters.ChatType.PRIVATE,
             receive_photo
         )
     )
 
+    # =====================================================
     # TEXT
+    # =====================================================
 
     application.add_handler(
         MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
+            filters.TEXT
+            & ~filters.COMMAND,
             receive_text
         )
     )
 
-    # ERROR HANDLER
-    application.add_error_handler(error_handler)
+    # =====================================================
+    # ERROR
+    # =====================================================
 
-    print("================================")
-    print("BOT STARTED")
-    print("================================")
+    application.add_error_handler(
+        error_handler
+    )
+
+    print(
+        "================================"
+    )
+
+    print(
+        "BOT STARTED"
+    )
+
+    print(
+        "================================"
+    )
 
     application.run_polling(
         drop_pending_updates=True
