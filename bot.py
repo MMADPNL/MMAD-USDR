@@ -21,19 +21,14 @@ from telegram.ext import (
     filters,
 )
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# =========================================================
-# تنظیمات
-# =========================================================
-
-BOT_TOKEN = سیستم عامل getenv ( "BOT_TOKEN" )
-
-شناسه مدیر = ۸۵۵۲۴۴۷۰۷۷
+ADMIN_ID = 8552447077
 
 CHANNEL_USERNAME = "@MMAD_KING1W"
-آدرس کانال = "https://t.me/MMAD_KING1W"
+CHANNEL_URL = "https://t.me/MMAD_KING1W"
 
-فایل داده = "data.json"
+DATA_FILE = "data.json"
 
 OWNER_START_DOGS = 100000
 REFERRAL_REWARD = 150
