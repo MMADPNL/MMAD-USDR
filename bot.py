@@ -7,18 +7,18 @@ import traceback
 import asyncio
 
 from telegram import (
-    به‌روزرسانی،
-    دکمه‌ی کیبورد درون‌خطی،
-    نشانه‌گذاری درون‌خطی کیبورد،
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
 )
 
-از telegram.ext وارد کنید  (
-    کاربرد،
-    کنترل‌کننده فرمان،
-    کنترل‌کننده‌ی پرس‌وجوی پاسخ به تماس،
-    مدیریت‌کننده پیام،
-    انواع زمینه،
-    فیلترها،
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
 )
 
 
