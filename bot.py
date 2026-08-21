@@ -1913,11 +1913,133 @@ async def error_handler(update, context):
 
 def main():
 
-    # ...
-    # ...
-    application.add_error_handler(
-        error_handler
+    if not BOT_TOKEN:
+        print("❌ BOT_TOKEN پیدا نشد.")
+        return
+
+    application = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .build()
     )
+
+    # COMMANDS
+
+    application.add_handler(
+        CommandHandler("start", start)
+    )
+
+    application.add_handler(
+        CommandHandler("myid", myid)
+    )
+
+    application.add_handler(
+        CommandHandler("ownerbalance", ownerbalance)
+    )
+
+    application.add_handler(
+        CommandHandler("setowner", setowner)
+    )
+
+    # CALLBACKS
+
+    application.add_handler(
+        CallbackQueryHandler(
+            check_join,
+            pattern=r"^check_join$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            wallet,
+            pattern=r"^wallet$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            referral,
+            pattern=r"^referral$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            currencies,
+            pattern=r"^currencies$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            deposit,
+            pattern=r"^deposit$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            deposit_selected,
+            pattern=r"^deposit_(DOGS|TON|USDT|NOT|WAT|LTC)$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            deposit_action,
+            pattern=r"^(approve|reject)_deposit_[A-Za-z0-9]+$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            withdraw,
+            pattern=r"^withdraw$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            withdraw_selected,
+            pattern=r"^withdraw_(DOGS|TON|USDT|NOT|WAT|LTC)$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            withdraw_action,
+            pattern=r"^(approve|reject)_withdraw_[A-Za-z0-9]+$"
+        )
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(
+            home,
+            pattern=r"^home$"
+        )
+    )
+
+    # PHOTO
+
+    application.add_handler(
+        MessageHandler(
+            filters.PHOTO & filters.ChatType.PRIVATE,
+            receive_photo
+        )
+    )
+
+    # TEXT
+
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            receive_text
+        )
+    )
+
+    # ERROR HANDLER
+    application.add_error_handler(error_handler)
 
     print("================================")
     print("BOT STARTED")
@@ -1927,6 +2049,10 @@ def main():
         drop_pending_updates=True
     )
 
+
+# =========================================================
+# RUN
+# =========================================================
 
 if __name__ == "__main__":
     main()
